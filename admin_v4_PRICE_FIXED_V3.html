@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Swastik Enterprises — Admin Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getStorage, ref, uploadString, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAK8eq7bW86BTUKX8SwPuk0_HqEn5cHLPg",
+    authDomain: "fabric-84971.firebaseapp.com",
+    projectId: "fabric-84971",
+    storageBucket: "fabric-84971.firebasestorage.app",
+    messagingSenderId: "341915371070",
+    appId: "1:341915371070:web:a8af52c83657833b15f36f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+
+  // ── Expose to global scope so non-module script can use them ──
+  window._fb = { db, storage, doc, getDoc, setDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, orderBy, ref, uploadString, uploadBytes, getDownloadURL, deleteObject };
+  window._fbReady = true;
+  window.dispatchEvent(new Event('fbReady'));
+</script>
+<style>
+:root {
+  --sand: #c9a87c;
+  --sand-light: #e8d5bc;
+  --sand-dark: #8b6843;
+  --warm-brown: #5c3d2e;
+  --cream: #fdf6ee;
+  --deep: #1a0f0a;
+  --accent: #b5451b;
+  --white: #ffffff;
+  --grey: #6b6b6b;
+  --light-bg: #f5ede3;
+  --success: #2d7a4f;
+  --warning: #b5800a;
+  --danger: #b5451b;
+  --sidebar-w: 240px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Jost',sans-serif;background:var(--cream);color:var(--deep);min-height:100vh;}
+
+/* ── LOGIN ── */
+#login-screen {
+  position:fixed;inset:0;background:var(--warm-brown);
+  display:flex;align-items:center;justify-content:center;z-index:9999;
+  background-image: radial-gradient(ellipse at 20% 50%, rgba(201,168,124,0.15) 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 20%, rgba(181,69,27,0.1) 0%, transparent 50%);
+}
+.login-box {
+  background:rgba(253,246,238,0.06);border:1px solid rgba(201,168,124,0.25);
+  padding:56px 52px;width:420px;max-width:94vw;
+  backdrop-filter:blur(20px);
+}
+.login-logo {
+  font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--sand-light);
+  margin-bottom:6px;letter-spacing:0.02em;
+}
+.login-logo span{color:var(--sand);font-style:italic;}
+.login-sub{font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;color:rgba(201,168,124,0.55);margin-bottom:40px;}
+.login-label{font-size:0.65rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(201,168,124,0.7);margin-bottom:7px;display:block;}
+.login-input {
+  width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(201,168,124,0.25);
+  padding:13px 16px;font-family:'Jost',sans-serif;font-size:0.92rem;color:var(--sand-light);
+  outline:none;transition:border-color 0.2s;margin-bottom:20px;
+}
+.login-input:focus{border-color:rgba(201,168,124,0.7);}
+.login-input::placeholder{color:rgba(201,168,124,0.3);}
+.login-btn {
+  width:100%;background:var(--sand);color:var(--warm-brown);border:none;
+  padding:14px;font-family:'Jost',sans-serif;font-size:0.82rem;font-weight:700;
+  letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;transition:background 0.2s;
+  margin-top:4px;
+}
+.login-btn:hover{background:var(--sand-light);}
+.login-err{font-size:0.78rem;color:#ff8a6a;margin-top:12px;display:none;}
+
+/* ── APP SHELL ── */
+#app{display:none;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);
+  background:var(--warm-brown);z-index:100;display:flex;flex-direction:column;
+  border-right:1px solid rgba(201,168,124,0.15);
+}
+.sidebar-logo {
+  padding:28px 24px 24px;border-bottom:1px solid rgba(201,168,124,0.15);
+}
+.sidebar-logo-text {
+  font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--sand-light);
+}
+.sidebar-logo-text span{color:var(--sand);font-style:italic;}
+.sidebar-badge {
+  font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;
+  color:rgba(201,168,124,0.5);margin-top:3px;
+}
+.sidebar-nav{flex:1;padding:16px 0;overflow-y:auto;}
+.nav-section-label {
+  font-size:0.58rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;
+  color:rgba(201,168,124,0.4);padding:14px 24px 6px;
+}
+.nav-item {
+  display:flex;align-items:center;gap:11px;padding:11px 24px;
+  color:rgba(201,168,124,0.65);font-size:0.82rem;font-weight:500;
+  letter-spacing:0.05em;cursor:pointer;transition:all 0.18s;position:relative;
+  text-decoration:none;border:none;background:none;width:100%;text-align:left;
+}
+.nav-item:hover{color:var(--sand-light);background:rgba(201,168,124,0.08);}
+.nav-item.active{color:var(--sand-light);background:rgba(201,168,124,0.14);}
+.nav-item.active::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sand);
+}
+.nav-icon{font-size:1rem;width:18px;text-align:center;flex-shrink:0;}
+.nav-badge {
+  margin-left:auto;background:var(--accent);color:var(--white);
+  font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;
+}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(201,168,124,0.15);}
+.logout-btn {
+  display:flex;align-items:center;gap:8px;color:rgba(201,168,124,0.5);
+  font-size:0.75rem;font-weight:500;letter-spacing:0.06em;cursor:pointer;
+  background:none;border:none;transition:color 0.2s;
+}
+.logout-btn:hover{color:rgba(201,168,124,0.85);}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column;}
+.topbar {
+  position:sticky;top:0;background:rgba(253,246,238,0.95);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(201,168,124,0.25);padding:18px 40px;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.topbar-title{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--warm-brown);}
+.topbar-sub{font-size:0.72rem;color:var(--grey);margin-top:2px;}
+.topbar-right{display:flex;align-items:center;gap:14px;}
+.topbar-site-btn {
+  background:var(--warm-brown);color:var(--white);border:none;
+  padding:9px 20px;font-family:'Jost',sans-serif;font-size:0.72rem;font-weight:600;
+  letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;text-decoration:none;
+  transition:background 0.2s;display:inline-block;
+}
+.topbar-site-btn:hover{background:var(--accent);}
+
+.content{padding:36px 40px;flex:1;}
+
+/* ── PAGES ── */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:36px;}
+.stat-card{
+  background:var(--white);border:1px solid var(--sand-light);
+  padding:24px 26px;position:relative;overflow:hidden;
+}
+.stat-card::after{
+  content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;
+  border-radius:50%;background:var(--sand-light);opacity:0.3;
+}
+.stat-label{font-size:0.65rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--grey);margin-bottom:10px;}
+.stat-value{font-family:'Playfair Display',serif;font-size:2rem;color:var(--warm-brown);}
+.stat-sub{font-size:0.72rem;color:var(--grey);margin-top:4px;}
+
+/* ── SECTION HEADING ── */
+.section-heading{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;
+}
+.section-heading h2{
+  font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--warm-brown);
+}
+.section-heading p{font-size:0.82rem;color:var(--grey);margin-top:3px;}
+
+/* ── BUTTONS ── */
+.btn{
+  padding:10px 22px;font-family:'Jost',sans-serif;font-size:0.75rem;font-weight:700;
+  letter-spacing:0.12em;text-transform:uppercase;border:none;cursor:pointer;
+  transition:all 0.2s;display:inline-flex;align-items:center;gap:7px;
+}
+.btn-primary{background:var(--warm-brown);color:var(--white);}
+.btn-primary:hover{background:var(--accent);}
+.btn-accent{background:var(--accent);color:var(--white);}
+.btn-accent:hover{background:#943514;}
+.btn-ghost{background:transparent;color:var(--warm-brown);border:1px solid var(--sand);}
+.btn-ghost:hover{border-color:var(--warm-brown);}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid rgba(181,69,27,0.3);}
+.btn-danger:hover{background:var(--danger);color:var(--white);}
+.btn-sm{padding:6px 14px;font-size:0.68rem;}
+
+/* ── CARD ── */
+.card{background:var(--white);border:1px solid var(--sand-light);margin-bottom:24px;}
+.card-header{
+  padding:18px 24px;border-bottom:1px solid var(--sand-light);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-header h3{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--warm-brown);}
+.card-body{padding:24px;}
+
+/* ── PRICING TABLE ── */
+.pricing-matrix{width:100%;border-collapse:collapse;font-size:0.82rem;}
+.pricing-matrix th{
+  background:var(--light-bg);padding:11px 14px;text-align:left;
+  font-size:0.63rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--sand-dark);border-bottom:2px solid var(--sand-light);white-space:nowrap;
+}
+.pricing-matrix td{
+  padding:9px 14px;border-bottom:1px solid rgba(201,168,124,0.15);vertical-align:middle;
+}
+.pricing-matrix tr:hover td{background:rgba(201,168,124,0.04);}
+.price-input-wrap{display:flex;align-items:center;gap:0;}
+.price-sym{
+  background:var(--light-bg);border:1px solid var(--sand);border-right:none;
+  padding:7px 10px;font-size:0.82rem;color:var(--sand-dark);font-weight:600;
+  white-space:nowrap;flex-shrink:0;
+}
+.price-input{
+  border:1px solid var(--sand);padding:7px 10px;font-family:'Jost',sans-serif;
+  font-size:0.86rem;color:var(--deep);outline:none;width:110px;
+  transition:border-color 0.2s;
+}
+.price-input:focus{border-color:var(--warm-brown);}
+.price-input::placeholder{color:rgba(107,107,107,0.5);}
+.price-note{font-size:0.68rem;color:var(--grey);margin-top:2px;}
+.fabric-col{
+  font-weight:600;color:var(--warm-brown);font-size:0.82rem;
+}
+.print-group-header td{
+  background:var(--warm-brown);color:var(--sand-light);font-size:0.68rem;
+  font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:8px 14px;
+}
+.print-type-label{
+  font-size:0.8rem;font-weight:600;color:var(--deep);white-space:nowrap;
+}
+.enquiry-tag{
+  font-size:0.6rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  background:rgba(201,168,124,0.2);color:var(--sand-dark);padding:2px 8px;
+  display:inline-block;
+}
+
+/* ── SAVE BAR ── */
+.save-bar{
+  position:sticky;bottom:0;background:var(--warm-brown);
+  padding:14px 40px;display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid rgba(201,168,124,0.2);z-index:40;
+}
+.save-bar p{font-size:0.8rem;color:rgba(201,168,124,0.8);}
+.save-bar .btn{background:var(--sand);color:var(--warm-brown);}
+.save-bar .btn:hover{background:var(--sand-light);}
+
+/* ── COLLECTION ── */
+.collection-toolbar{
+  display:flex;align-items:center;gap:14px;margin-bottom:24px;flex-wrap:wrap;
+}
+.upload-card{
+  background:var(--white);border:2px dashed var(--sand);padding:32px 24px;
+  text-align:center;cursor:pointer;transition:all 0.2s;position:relative;
+  margin-bottom:24px;
+}
+.upload-card:hover{border-color:var(--warm-brown);background:var(--light-bg);}
+.upload-card input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-card-icon{font-size:2.5rem;margin-bottom:10px;}
+.upload-card h4{font-family:'Playfair Display',serif;font-size:1rem;color:var(--warm-brown);margin-bottom:4px;}
+.upload-card p{font-size:0.75rem;color:var(--grey);}
+
+.fabric-admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
+.fabric-admin-card{background:var(--white);border:1px solid var(--sand-light);overflow:hidden;position:relative;}
+.fabric-admin-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;}
+.fabric-admin-img-ph{
+  width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,var(--sand-light),var(--sand));
+  display:flex;align-items:center;justify-content:center;font-size:3rem;
+}
+.fabric-admin-body{padding:16px 18px;}
+.fabric-admin-name{font-family:'Playfair Display',serif;font-size:1rem;color:var(--warm-brown);margin-bottom:4px;}
+.fabric-admin-meta{font-size:0.68rem;color:var(--grey);}
+.fabric-admin-actions{
+  padding:12px 18px;border-top:1px solid var(--sand-light);
+  display:flex;gap:8px;background:var(--light-bg);
+}
+.fabric-admin-status{
+  position:absolute;top:10px;right:10px;
+  font-size:0.6rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  padding:3px 9px;
+}
+.status-live{background:var(--success);color:var(--white);}
+.status-draft{background:var(--grey);color:var(--white);}
+
+/* ── ADD FABRIC MODAL ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(26,15,10,0.65);
+  backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--cream);max-width:640px;width:100%;max-height:92vh;overflow-y:auto;position:relative;}
+.modal-header{padding:28px 32px 20px;border-bottom:1px solid var(--sand-light);}
+.modal-header h2{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--warm-brown);}
+.modal-close{position:absolute;top:16px;right:18px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--grey);}
+.modal-close:hover{color:var(--accent);}
+.modal-body{padding:24px 32px 0;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.form-group{display:flex;flex-direction:column;}
+.form-group.full{grid-column:1/-1;}
+.form-group label{font-size:0.63rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--sand-dark);margin-bottom:6px;}
+.form-group input,.form-group select,.form-group textarea{
+  border:1px solid var(--sand);background:var(--white);padding:10px 13px;
+  font-family:'Jost',sans-serif;font-size:0.88rem;color:var(--deep);outline:none;
+  transition:border-color 0.2s;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--warm-brown);}
+.form-group textarea{resize:vertical;min-height:70px;}
+.img-preview-box{
+  width:100%;max-height:200px;object-fit:cover;border:1px solid var(--sand);border-radius:6px;
+  display:none;margin-bottom:10px;
+}
+.img-drop-zone{
+  border:2px dashed var(--sand);background:var(--light-bg);
+  padding:24px;text-align:center;cursor:pointer;position:relative;transition:all 0.2s;
+}
+.img-drop-zone:hover{border-color:var(--warm-brown);}
+.img-drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.img-drop-zone p{font-size:0.75rem;color:var(--grey);margin-top:6px;}
+
+/* ── ORDERS ── */
+.orders-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;}
+.filter-btn{
+  padding:7px 16px;font-family:'Jost',sans-serif;font-size:0.72rem;font-weight:600;
+  letter-spacing:0.1em;text-transform:uppercase;border:1px solid var(--sand);
+  background:var(--white);color:var(--grey);cursor:pointer;transition:all 0.2s;
+}
+.filter-btn:hover,.filter-btn.active{background:var(--warm-brown);color:var(--white);border-color:var(--warm-brown);}
+.order-card{
+  background:var(--white);border:1px solid var(--sand-light);margin-bottom:14px;
+  border-left:3px solid var(--sand);transition:box-shadow 0.2s;
+}
+.order-card:hover{box-shadow:0 4px 16px rgba(92,61,46,0.1);}
+.order-card.type-ai{border-left-color:var(--accent);}
+.order-card.type-custom{border-left-color:var(--sand-dark);}
+.order-header{
+  padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  cursor:pointer;
+}
+.order-ref{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--sand-dark);font-weight:500;}
+.order-name{font-weight:600;font-size:0.9rem;color:var(--warm-brown);}
+.order-phone{font-size:0.78rem;color:var(--grey);}
+.order-type-badge{
+  font-size:0.6rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  padding:3px 9px;flex-shrink:0;
+}
+.badge-collection{background:rgba(92,61,46,0.1);color:var(--warm-brown);}
+.badge-ai{background:rgba(181,69,27,0.1);color:var(--accent);}
+.badge-custom{background:rgba(139,104,67,0.15);color:var(--sand-dark);}
+.order-time{font-size:0.72rem;color:var(--grey);margin-left:auto;}
+.order-body{
+  padding:16px 20px 20px;border-top:1px solid var(--sand-light);
+  display:none;
+}
+.order-body.open{display:block;}
+.order-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.od-item label{font-size:0.6rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--grey);display:block;margin-bottom:3px;}
+.od-item span{font-size:0.86rem;color:var(--deep);}
+.order-design-img{width:100%;max-width:220px;height:150px;object-fit:cover;border:1px solid var(--sand);background:var(--light-bg);margin-right:10px;margin-bottom:10px;}
+.order-img-wrap{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;}
+.order-status-row{
+  display:flex;align-items:center;gap:10px;padding-top:14px;border-top:1px solid var(--sand-light);
+}
+.status-select{
+  border:1px solid var(--sand);background:var(--white);padding:6px 10px;
+  font-family:'Jost',sans-serif;font-size:0.78rem;color:var(--deep);outline:none;cursor:pointer;
+}
+.propose-tag{
+  font-size:0.72rem;background:rgba(181,69,27,0.08);border:1px solid rgba(181,69,27,0.25);
+  color:var(--accent);padding:4px 10px;font-weight:600;
+}
+.final-price-tag{
+  font-size:0.72rem;background:rgba(34,120,60,0.10);border:1px solid rgba(34,120,60,0.35);
+  color:#1a6e35;padding:4px 10px;font-weight:700;
+}
+.final-price-row{
+  display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px 14px;
+  background:rgba(34,120,60,0.06);border:1px solid rgba(34,120,60,0.2);border-radius:6px;
+}
+.final-price-row label{font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#1a6e35;white-space:nowrap;}
+.final-price-input-wrap{display:flex;align-items:center;gap:0;}
+.final-price-sym{background:#d4edda;border:1px solid rgba(34,120,60,0.3);border-right:none;padding:6px 9px;font-size:0.85rem;color:#1a6e35;font-weight:700;border-radius:4px 0 0 4px;}
+.final-price-input{border:1px solid rgba(34,120,60,0.3);padding:6px 10px;font-size:0.85rem;width:100px;border-radius:0 4px 4px 0;outline:none;color:var(--deep);}
+.final-price-input:focus{border-color:#1a6e35;}
+.final-price-save{background:#1a6e35;color:#fff;border:none;padding:6px 14px;font-size:0.75rem;font-weight:700;letter-spacing:0.08em;border-radius:4px;cursor:pointer;}
+.final-price-save:hover{background:#155c2c;}
+
+/* ── EMPTY ── */
+.empty-msg{text-align:center;padding:60px 20px;color:var(--grey);}
+.empty-msg .em-icon{font-size:3rem;margin-bottom:12px;}
+.empty-msg p{font-size:0.9rem;}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;background:var(--deep);color:var(--white);
+  padding:12px 22px;font-size:0.82rem;font-weight:500;opacity:0;
+  transition:opacity 0.3s;pointer-events:none;z-index:9999;
+}
+.toast.show{opacity:1;}
+.toast.success{background:var(--success);}
+.toast.error{background:var(--danger);}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:2px solid var(--sand-light);margin-bottom:28px;}
+.tab-btn{
+  padding:11px 22px;font-family:'Jost',sans-serif;font-size:0.75rem;font-weight:600;
+  letter-spacing:0.1em;text-transform:uppercase;background:none;border:none;
+  color:var(--grey);cursor:pointer;transition:all 0.2s;position:relative;margin-bottom:-2px;
+}
+.tab-btn.active{color:var(--warm-brown);border-bottom:2px solid var(--warm-brown);}
+.tab-btn:hover:not(.active){color:var(--warm-brown);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── TOGGLE ── */
+.toggle-wrap{display:flex;align-items:center;gap:10px;}
+.toggle{width:42px;height:22px;background:var(--sand-light);border-radius:11px;cursor:pointer;position:relative;transition:background 0.2s;}
+.toggle.on{background:var(--success);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--white);transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.toggle.on::after{transform:translateX(20px);}
+.toggle-label{font-size:0.78rem;color:var(--grey);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);transition:transform 0.3s;}
+  .main{margin-left:0;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN SCREEN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Swastik <span>Enterprises</span></div>
+    <div class="login-sub">Admin Portal</div>
+    <label class="login-label">Password</label>
+    <input class="login-input" type="password" id="login-pw" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">Access Portal →</button>
+    <div class="login-err" id="login-err">⚠ Incorrect password. Try again.</div>
+    <p style="font-size:0.65rem;color:rgba(201,168,124,0.35);margin-top:20px;text-align:center;">Default: swastik2026</p>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-text">Swastik <span>Ent.</span></div>
+      <div class="sidebar-badge">Admin Portal</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <button class="nav-item active" onclick="goPage('dashboard')" data-page="dashboard">
+        <span class="nav-icon">📊</span> Dashboard
+      </button>
+      <div class="nav-section-label">Catalogue</div>
+      <button class="nav-item" onclick="goPage('collection')" data-page="collection">
+        <span class="nav-icon">🖼️</span> Collection
+      </button>
+      <div class="nav-section-label">Pricing</div>
+      <button class="nav-item" onclick="goPage('pricing')" data-page="pricing">
+        <span class="nav-icon">💰</span> Price Matrix
+      </button>
+      <div class="nav-section-label">Orders</div>
+      <button class="nav-item" onclick="goPage('orders')" data-page="orders">
+        <span class="nav-icon">📋</span> All Enquiries
+        <span class="nav-badge" id="pending-count">0</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">
+        <span>⬅</span> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+        <div class="topbar-sub" id="topbar-sub">Overview of your store</div>
+      </div>
+      <div class="topbar-right">
+        <a class="topbar-site-btn" href="swastik_enterprises_v5.html" target="_blank">← View Site</a>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══ DASHBOARD ══ -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-row" id="stats-row"></div>
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:24px;">
+          <div class="card">
+            <div class="card-header"><h3>Recent Enquiries</h3></div>
+            <div class="card-body" id="dash-recent"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Quick Actions</h3></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+              <button class="btn btn-primary" onclick="goPage('collection')">🖼️ &nbsp;Add to Collection</button>
+              <button class="btn btn-ghost" onclick="goPage('pricing')">💰 &nbsp;Update Prices</button>
+              <button class="btn btn-ghost" onclick="goPage('orders')">📋 &nbsp;View All Orders</button>
+              <hr style="border:none;border-top:1px solid var(--sand-light);">
+              <div style="font-size:0.72rem;color:var(--grey);line-height:1.7;">
+                <strong style="color:var(--warm-brown);display:block;margin-bottom:4px;">💡 Tips</strong>
+                Set per-fabric prices in the Price Matrix for accurate quotes.<br>
+                Prices flow automatically to the main site.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ COLLECTION ══ -->
+      <div class="page" id="page-collection">
+        <div class="section-heading">
+          <div>
+            <h2>Collection Manager</h2>
+            <p>Photos posted here appear live in the Collection section of the main site.</p>
+          </div>
+          <button class="btn btn-accent" onclick="openAddModal()">+ Add Design</button>
+        </div>
+
+        <div class="fabric-admin-grid" id="fabric-admin-grid">
+          <div class="empty-msg"><div class="em-icon">🎨</div><p>No designs posted yet. Add your first one!</p></div>
+        </div>
+      </div>
+
+      <!-- ══ PRICING ══ -->
+      <div class="page" id="page-pricing">
+        <div class="section-heading">
+          <div>
+            <h2>Price Matrix</h2>
+            <p>Set prices per print type × fabric combination. Leave blank = "Price on enquiry".</p>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchPriceTab('matrix')">📊 Full Matrix</button>
+          <button class="tab-btn" onclick="switchPriceTab('base')">⚡ Base Rates (per print)</button>
+        </div>
+
+        <!-- FULL MATRIX TAB -->
+        <div class="tab-panel active" id="ptab-matrix">
+          <div class="card">
+            <div class="card-header">
+              <h3>Print Type × Fabric Type</h3>
+              <span style="font-size:0.72rem;color:var(--grey);">₹ per meter</span>
+            </div>
+            <div class="card-body" style="overflow-x:auto;padding:0;">
+              <table class="pricing-matrix" id="price-matrix-table">
+                <!-- built by JS -->
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- BASE RATES TAB -->
+        <div class="tab-panel" id="ptab-base">
+          <div class="card">
+            <div class="card-header">
+              <h3>Base Rate per Print Type</h3>
+              <span style="font-size:0.72rem;color:var(--grey);">Used as fallback when no per-fabric price is set</span>
+            </div>
+            <div class="card-body">
+              <div id="base-rates-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-bar" id="save-bar">
+          <p>💾 &nbsp;Remember to save — changes go live on the main site instantly.</p>
+          <button class="btn" onclick="savePricing()">✓ Save All Prices</button>
+        </div>
+      </div>
+
+      <!-- ══ ORDERS ══ -->
+      <div class="page" id="page-orders">
+        <div class="section-heading">
+          <div>
+            <h2>All Enquiries</h2>
+            <p>Customer quote requests from the main site.</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="clearAllOrders()">🗑 Clear All</button>
+        </div>
+        <div class="orders-filters">
+          <button class="filter-btn active" onclick="filterOrders('all',this)">All</button>
+          <button class="filter-btn" onclick="filterOrders('collection-quote',this)">Collection</button>
+          <button class="filter-btn" onclick="filterOrders('ai-design',this)">AI Design</button>
+          <button class="filter-btn" onclick="filterOrders('custom-design',this)">Custom Design</button>
+          <button class="filter-btn" onclick="filterOrders('pending',this)">⏳ Pending</button>
+        </div>
+        <div id="orders-list"></div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── ADD/EDIT FABRIC MODAL ── -->
+<div class="modal-overlay" id="fabric-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeFabricModal()">✕</button>
+    <div class="modal-header">
+      <h2 id="modal-title">Add New Design</h2>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Design / Collection Name *</label>
+          <input type="text" id="fm-name" placeholder="e.g. Royal Jaipuri Floral"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Design Image *</label>
+          <img id="fm-img-preview" class="img-preview-box" src="" alt="Preview"/>
+          <button type="button" id="fm-change-img" onclick="resetFabricImg()" style="display:none;font-size:0.72rem;color:var(--sand-dark);background:none;border:1px solid var(--sand);padding:4px 12px;border-radius:4px;cursor:pointer;margin-bottom:8px;">✕ Remove &amp; change photo</button>
+          <div class="img-drop-zone" id="fm-drop">
+            <input type="file" accept="image/*" onchange="handleFabricImgUpload(event)"/>
+            <div style="font-size:2rem;margin-bottom:6px;">📷</div>
+            <p>Click to browse or drag & drop<br><span style="font-size:0.68rem;color:var(--sand-dark);">JPG, PNG, WEBP — shown on main site collection</span></p>
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full">
+          <label>Description (optional)</label>
+          <textarea id="fm-desc" placeholder="Brief description shown to customers…"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;position:sticky;bottom:0;background:var(--cream);padding:16px 0 24px;border-top:1px solid var(--sand-light);">
+        <div class="toggle-wrap">
+          <div class="toggle on" id="fm-status-toggle" onclick="toggleFmStatus()"></div>
+          <span class="toggle-label" id="fm-status-label">Live on site</span>
+        </div>
+        <button class="btn btn-accent" onclick="saveFabricItem()">✓ Save Design</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTS ───
+const ADMIN_PW = 'swastik2026';
+const PRINT_TYPES = ['Rotary Print','Digital Print','Foil Print','Plain Dyed','Screen Print'];
+const FABRIC_TYPES = ['Cotton','Silk','Polyester','Georgette','Linen','Rayon','Chiffon','Satin','Viscose'];
+
+// ─── WAIT FOR FIREBASE ───
+function onFbReady(cb) {
+  if (window._fbReady) { cb(); return; }
+  window.addEventListener('fbReady', cb, { once: true });
+}
+
+// ─── LOGIN ───
+function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  if (pw === ADMIN_PW) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('login-pw').value = '';
+  }
+}
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pw').value = '';
+}
+
+// ─── FIREBASE STORAGE HELPERS ───
+// In-memory caches so UI stays snappy
+let _pricingCache = {};
+let _fabricsCache = [];
+let _queriesCache = [];
+
+async function getPricing() {
+  try {
+    const { db, doc, getDoc } = window._fb;
+    const snap = await getDoc(doc(db, 'settings', 'pricing'));
+    _pricingCache = snap.exists() ? (snap.data().data || {}) : {};
+    return _pricingCache;
+  } catch(e) { console.error('getPricing', e); return _pricingCache; }
+}
+
+async function savePricingData(p) {
+  try {
+    const { db, doc, setDoc } = window._fb;
+    await setDoc(doc(db, 'settings', 'pricing'), { data: p, updatedAt: new Date().toISOString() });
+    _pricingCache = p;
+  } catch(e) { console.error('savePricingData', e); showToast('Save failed — check connection', 'error'); }
+}
+
+async function getFabrics() {
+  try {
+    const { db, collection, getDocs, query, orderBy } = window._fb;
+    const snap = await getDocs(query(collection(db, 'fabrics'), orderBy('updatedAt', 'desc')));
+    _fabricsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return _fabricsCache;
+  } catch(e) { console.error('getFabrics', e); return _fabricsCache; }
+}
+
+async function saveFabricsData(fabrics) {
+  // Used for bulk delete/status — handled per-item via saveFabricItem / deleteFabric
+  // (no-op in Firebase path, individual ops are atomic)
+}
+
+async function getQueries() {
+  try {
+    const { db, collection, getDocs, query, orderBy } = window._fb;
+    const snap = await getDocs(query(collection(db, 'enquiries'), orderBy('timestamp', 'desc')));
+    _queriesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return _queriesCache;
+  } catch(e) { console.error('getQueries', e); return _queriesCache; }
+}
+
+// Upload image blob/dataURL to Firebase Storage and return the download URL
+async function uploadImageToStorage(dataUrl, path) {
+  const { storage, ref, uploadString, getDownloadURL } = window._fb;
+  const imgRef = ref(storage, path);
+  const snapshot = await uploadString(imgRef, dataUrl, 'data_url');
+  return await getDownloadURL(snapshot.ref);
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast '+type+' show';
+  setTimeout(()=>t.className='toast', 3200);
+}
+function genId() { return 'f_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ─── NAVIGATION ───
+const PAGE_TITLES = {
+  dashboard: ['Dashboard','Overview of your store'],
+  collection: ['Collection Manager','Manage designs shown on the main site'],
+  pricing: ['Price Matrix','Set rates per print type & fabric combination'],
+  orders: ['All Enquiries','Customer quote requests']
+};
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelector('[data-page="'+name+'"]').classList.add('active');
+  const [title, sub] = PAGE_TITLES[name];
+  document.getElementById('topbar-title').textContent = title;
+  document.getElementById('topbar-sub').textContent = sub;
+  if (name==='dashboard') renderDashboard();
+  if (name==='collection') renderCollection();
+  if (name==='pricing') renderPricingMatrix();
+  if (name==='orders') renderOrders('all');
+}
+
+// ─── INIT ───
+function initApp() {
+  onFbReady(async () => {
+    updatePendingCount();
+    renderDashboard();
+    // Set up real-time listener for enquiries
+    setupEnquiriesListener();
+  });
+}
+
+function setupEnquiriesListener() {
+  const { db, collection, onSnapshot, query, orderBy } = window._fb;
+  onSnapshot(query(collection(db, 'enquiries'), orderBy('timestamp', 'desc')), snap => {
+    _queriesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updatePendingCount();
+    // Re-render current page if on orders/dashboard
+    const activePage = document.querySelector('.page.active');
+    if (activePage) {
+      const id = activePage.id;
+      if (id === 'page-orders') renderOrdersFromCache(currentOrderFilter);
+      if (id === 'page-dashboard') renderDashboard();
+    }
+  });
+}
+
+async function updatePendingCount() {
+  const queries = _queriesCache.length ? _queriesCache : await getQueries();
+  const q = queries.filter(x=>x.status==='pending').length;
+  document.getElementById('pending-count').textContent = q;
+  document.getElementById('pending-count').style.display = q ? '' : 'none';
+}
+
+// ─── DASHBOARD ───
+async function renderDashboard() {
+  const fabrics = await getFabrics();
+  const queries = _queriesCache.length ? _queriesCache : await getQueries();
+  const pending = queries.filter(q=>q.status==='pending').length;
+  const pricing = await getPricing();
+  const priceCount = Object.values(pricing).filter(v=>v>0).length;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Designs Live</div>
+      <div class="stat-value">${fabrics.filter(f=>f.status!=='draft').length}</div>
+      <div class="stat-sub">${fabrics.length} total uploaded</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Enquiries</div>
+      <div class="stat-value">${queries.length}</div>
+      <div class="stat-sub">${pending} pending response</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Prices Set</div>
+      <div class="stat-value">${priceCount}</div>
+      <div class="stat-sub">of ${PRINT_TYPES.length * FABRIC_TYPES.length + PRINT_TYPES.length} combinations</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Proposed Prices</div>
+      <div class="stat-value">${queries.filter(q=>q.proposedPrice).length}</div>
+      <div class="stat-sub">from customers</div>
+    </div>
+  `;
+
+  const recent = queries.slice(0,5);
+  if (!recent.length) {
+    document.getElementById('dash-recent').innerHTML = '<div class="empty-msg"><div class="em-icon">📭</div><p>No enquiries yet.</p></div>';
+  } else {
+    document.getElementById('dash-recent').innerHTML = recent.map(q => `
+      <div style="padding:10px 0;border-bottom:1px solid var(--sand-light);display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:0.86rem;color:var(--warm-brown);">${escHtml(q.name||'—')}</div>
+          <div style="font-size:0.72rem;color:var(--grey);">${escHtml(q.collectionName||q.designName||q.type||'')} · ${timeSince(q.timestamp)}</div>
+        </div>
+        <span class="order-type-badge ${typeBadgeClass(q.type)}">${q.type||'—'}</span>
+        <span style="font-size:0.72rem;color:${q.status==='pending'?'var(--warning)':'var(--success)'};">${q.status||'—'}</span>
+      </div>
+    `).join('');
+  }
+}
+
+// ─── COLLECTION ───
+let editingFabricId = null;
+let pendingImgSrc = null;
+
+async function renderCollection() {
+  const fabrics = await getFabrics();
+  const grid = document.getElementById('fabric-admin-grid');
+  if (!fabrics.length) {
+    grid.innerHTML = '<div class="empty-msg"><div class="em-icon">🎨</div><p>No designs posted yet. Click "Add Design" to get started!</p></div>';
+    return;
+  }
+  grid.innerHTML = fabrics.map(f => `
+    <div class="fabric-admin-card" id="fac-${f.id}">
+      <span class="fabric-admin-status ${f.status==='draft'?'status-draft':'status-live'}">${f.status==='draft'?'Draft':'Live'}</span>
+      ${f.image ? `<img class="fabric-admin-img" src="${f.image}" alt="${escHtml(f.name)}">` : '<div class="fabric-admin-img-ph">🧵</div>'}
+      <div class="fabric-admin-body">
+        <div class="fabric-admin-name">${escHtml(f.name)}</div>
+        <div class="fabric-admin-meta" style="color:var(--success);font-weight:600;">✓ Available for all fabrics & prints</div>
+        ${f.description ? `<div style="font-size:0.72rem;color:var(--grey);margin-top:5px;line-height:1.5;">${escHtml(f.description).slice(0,80)}${f.description.length>80?'…':''}</div>` : ''}
+      </div>
+      <div class="fabric-admin-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openEditModal('${f.id}')">✏ Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleFabricStatus('${f.id}')">${f.status==='draft'?'▶ Publish':'⏸ Draft'}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteFabric('${f.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openAddModal() {
+  editingFabricId = null; pendingImgSrc = null;
+  document.getElementById('modal-title').textContent = 'Add New Design';
+  document.getElementById('fm-name').value = '';
+  document.getElementById('fm-desc').value = '';
+  document.getElementById('fm-img-preview').style.display = 'none';
+  document.getElementById('fm-img-preview').src = '';
+  document.getElementById('fm-drop').style.display = 'block';
+  document.getElementById('fm-change-img').style.display = 'none';
+  // Reset file input so same or any file can be selected fresh each time
+  const fileInput = document.querySelector('#fm-drop input[type=file]');
+  if (fileInput) fileInput.value = '';
+  fmStatusOn = true;
+  document.getElementById('fm-status-toggle').className = 'toggle on';
+  document.getElementById('fm-status-label').textContent = 'Live on site';
+  document.getElementById('fabric-modal').classList.add('open');
+}
+
+async function openEditModal(id) {
+  const fabrics = await getFabrics();
+  const f = fabrics.find(x=>x.id===id);
+  if (!f) return;
+  editingFabricId = id; pendingImgSrc = f.image || null;
+  document.getElementById('modal-title').textContent = 'Edit Design';
+  document.getElementById('fm-name').value = f.name || '';
+  document.getElementById('fm-desc').value = f.description || '';
+  if (f.image) {
+    document.getElementById('fm-img-preview').src = f.image;
+    document.getElementById('fm-img-preview').style.display = 'block';
+    document.getElementById('fm-drop').style.display = 'none';
+  } else {
+    document.getElementById('fm-img-preview').style.display = 'none';
+    document.getElementById('fm-drop').style.display = 'block';
+  }
+  const isDraft = f.status === 'draft';
+  fmStatusOn = !isDraft;
+  document.getElementById('fm-status-toggle').className = 'toggle' + (isDraft ? '' : ' on');
+  document.getElementById('fm-status-label').textContent = isDraft ? 'Draft (hidden)' : 'Live on site';
+  // Reset file input
+  const fileInput2 = document.querySelector('#fm-drop input[type=file]');
+  if (fileInput2) fileInput2.value = '';
+  document.getElementById('fabric-modal').classList.add('open');
+}
+
+function closeFabricModal() {
+  document.getElementById('fabric-modal').classList.remove('open');
+  const fi = document.querySelector('#fm-drop input[type=file]');
+  if (fi) fi.value = '';
+  const prev = document.getElementById('fm-img-preview');
+  if (prev) { prev.src = ''; prev.style.display = 'none'; }
+  const chg = document.getElementById('fm-change-img');
+  if (chg) chg.style.display = 'none';
+  document.getElementById('fm-drop').style.display = 'block';
+  pendingImgSrc = null;
+}
+
+// Compress image to base64 — always stays under targetKB (default 700 KB)
+// so it safely fits inside a Firestore document (1 MB limit).
+function compressImageBase64(dataUrl, maxPx = 1200, quality = 0.82, targetKB = 700) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else       { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      let result = canvas.toDataURL('image/jpeg', quality);
+
+      // Iteratively reduce quality until the base64 is under targetKB
+      while (result.length > targetKB * 1024 * 1.37 && quality > 0.20) {
+        quality = Math.max(quality - 0.10, 0.20);
+        result  = canvas.toDataURL('image/jpeg', quality);
+      }
+
+      // Still too big? Shrink canvas by 70% and retry
+      if (result.length > targetKB * 1024 * 1.37) {
+        const c2 = document.createElement('canvas');
+        c2.width  = Math.round(canvas.width  * 0.70);
+        c2.height = Math.round(canvas.height * 0.70);
+        c2.getContext('2d').drawImage(canvas, 0, 0, c2.width, c2.height);
+        result = c2.toDataURL('image/jpeg', 0.65);
+      }
+
+      resolve(result);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+const ADMIN_MAX_UPLOAD_MB = 5;
+
+function handleFabricImgUpload(event) {
+  const file = event.target.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  if (file.size > ADMIN_MAX_UPLOAD_MB * 1024 * 1024) {
+    showToast(`Image too large (${(file.size/1024/1024).toFixed(1)} MB). Please upload under ${ADMIN_MAX_UPLOAD_MB} MB.`, 'error');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async e => {
+    // Compress to keep storage usage and Firestore doc size under control
+    pendingImgSrc = await compressImageBase64(e.target.result, 1200, 0.82);
+    const prev = document.getElementById('fm-img-preview');
+    prev.src = pendingImgSrc;
+    prev.style.display = 'block';
+    document.getElementById('fm-drop').style.display = 'none';
+    document.getElementById('fm-change-img').style.display = 'inline-block';
+    // Clear input value AFTER load is complete, inside the callback
+    event.target.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetFabricImg() {
+  pendingImgSrc = null;
+  const prev = document.getElementById('fm-img-preview');
+  prev.src = ''; prev.style.display = 'none';
+  document.getElementById('fm-drop').style.display = 'block';
+  document.getElementById('fm-change-img').style.display = 'none';
+  const fi = document.querySelector('#fm-drop input[type=file]');
+  if (fi) fi.value = '';
+}
+
+let fmStatusOn = true;
+function toggleFmStatus() {
+  fmStatusOn = !fmStatusOn;
+  const t = document.getElementById('fm-status-toggle');
+  const l = document.getElementById('fm-status-label');
+  t.className = 'toggle' + (fmStatusOn ? ' on' : '');
+  l.textContent = fmStatusOn ? 'Live on site' : 'Draft (hidden)';
+}
+
+async function saveFabricItem() {
+  const name = document.getElementById('fm-name').value.trim();
+  if (!name) { showToast('Design name is required','error'); return; }
+  if (!window._fb) { showToast('Firebase not ready — please wait a moment', 'error'); return; }
+
+  const btn = document.querySelector('.modal-body .btn-accent');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
+  showToast('Saving…', 'success');
+
+  try {
+    const { db, doc, setDoc } = window._fb;
+    const isLive = document.getElementById('fm-status-toggle').classList.contains('on');
+    const fabricId = editingFabricId || genId();
+
+    // No Firebase Storage subscription — always compress to base64 and save in Firestore.
+    // compressImageBase64 guarantees output < 700 KB so the doc stays under Firestore's 1 MB limit.
+    let imageUrl = null;
+    if (pendingImgSrc && pendingImgSrc.startsWith('data:')) {
+      if (btn) btn.textContent = '🗜️ Compressing…';
+      imageUrl = await compressImageBase64(pendingImgSrc);
+      const sizeKB = Math.round(imageUrl.length / 1024);
+      console.log(`Compressed image size: ${sizeKB} KB`);
+      // Safety guard: if still over 900 KB, compress harder
+      if (imageUrl.length > 900 * 1024 * 1.37) {
+        imageUrl = await compressImageBase64(imageUrl, 800, 0.55, 500);
+        console.log(`Re-compressed to: ${Math.round(imageUrl.length/1024)} KB`);
+      }
+      if (btn) btn.textContent = '💾 Saving to DB…';
+    } else if (pendingImgSrc) {
+      imageUrl = pendingImgSrc; // already an https:// URL from a previous save — keep as-is
+    }
+
+    const item = {
+      name,
+      fabric: 'All',
+      printType: 'All',
+      description: document.getElementById('fm-desc').value.trim(),
+      image: imageUrl || null,
+      status: isLive ? 'live' : 'draft',
+      updatedAt: new Date().toISOString()
+    };
+
+    await setDoc(doc(db, 'fabrics', fabricId), item);
+    closeFabricModal();
+    renderCollection();
+    showToast(editingFabricId ? 'Design updated!' : 'Design added to collection!');
+  } catch(e) {
+    console.error('saveFabricItem', e);
+    showToast('Save failed: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Save Design'; }
+  }
+}
+
+async function toggleFabricStatus(id) {
+  try {
+    const fabrics = await getFabrics();
+    const f = fabrics.find(x=>x.id===id);
+    if (!f) return;
+    const newStatus = f.status === 'draft' ? 'live' : 'draft';
+    const { db, doc, updateDoc } = window._fb;
+    await updateDoc(doc(db, 'fabrics', id), { status: newStatus, updatedAt: new Date().toISOString() });
+    renderCollection();
+    showToast(newStatus === 'live' ? 'Published live!' : 'Moved to draft');
+  } catch(e) { showToast('Update failed', 'error'); }
+}
+
+async function deleteFabric(id) {
+  if (!confirm('Delete this design? It will be removed from the main site.')) return;
+  try {
+    const { db, doc, deleteDoc, storage, ref, deleteObject } = window._fb;
+    // Try to delete the image from Storage too
+    try { await deleteObject(ref(storage, `fabrics/${id}/image`)); } catch(_) {}
+    await deleteDoc(doc(db, 'fabrics', id));
+    renderCollection();
+    showToast('Design deleted');
+  } catch(e) { showToast('Delete failed', 'error'); }
+}
+
+// ─── PRICING ───
+async function renderPricingMatrix() {
+  const pricing = await getPricing();
+  // Build matrix table: rows = print types, cols = fabric types
+  let th = `<thead><tr><th style="min-width:130px;">Print Type</th>`;
+  FABRIC_TYPES.forEach(f => th += `<th>${f}</th>`);
+  th += `</tr></thead>`;
+
+  let tb = `<tbody>`;
+  PRINT_TYPES.forEach(pt => {
+    tb += `<tr>
+      <td class="print-type-label">${pt}</td>`;
+    FABRIC_TYPES.forEach(fab => {
+      const key = `${pt}:${fab}`;
+      const val = pricing[key] || '';
+      tb += `<td>
+        <div class="price-input-wrap">
+          <span class="price-sym">₹</span>
+          <input class="price-input" type="number" min="0" step="1"
+            id="pm-${sanitizeId(pt)}-${sanitizeId(fab)}"
+            data-key="${key}"
+            value="${val}"
+            placeholder="—"
+            oninput="markUnsaved()"/>
+        </div>
+      </td>`;
+    });
+    tb += `</tr>`;
+  });
+  tb += `</tbody>`;
+
+  document.getElementById('price-matrix-table').innerHTML = th + tb;
+
+  // Build base rates
+  let baseHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">`;
+  PRINT_TYPES.forEach(pt => {
+    const val = pricing[pt] || '';
+    baseHtml += `
+      <div style="background:var(--light-bg);border:1px solid var(--sand-light);padding:18px 20px;">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--sand-dark);margin-bottom:10px;">${pt}</div>
+        <div class="price-input-wrap">
+          <span class="price-sym">₹</span>
+          <input class="price-input" type="number" min="0" step="1"
+            id="base-${sanitizeId(pt)}"
+            data-basekey="${pt}"
+            value="${val}"
+            placeholder="Fallback rate"
+            style="width:130px;"
+            oninput="markUnsaved()"/>
+          <span style="font-size:0.72rem;color:var(--grey);margin-left:8px;">/meter</span>
+        </div>
+        <div class="price-note">Used when no per-fabric price is set</div>
+      </div>`;
+  });
+  baseHtml += `</div>`;
+  document.getElementById('base-rates-list').innerHTML = baseHtml;
+}
+
+function sanitizeId(s) { return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+function markUnsaved() {} // placeholder — save bar always visible on pricing page
+
+async function savePricing() {
+  const pricing = {};
+  // Matrix
+  PRINT_TYPES.forEach(pt => {
+    FABRIC_TYPES.forEach(fab => {
+      const el = document.getElementById('pm-'+sanitizeId(pt)+'-'+sanitizeId(fab));
+      if (el && el.value.trim() !== '') {
+        const v = parseFloat(el.value);
+        if (!isNaN(v) && v > 0) pricing[`${pt}:${fab}`] = v;
+      }
+    });
+  });
+  // Base rates
+  PRINT_TYPES.forEach(pt => {
+    const el = document.getElementById('base-'+sanitizeId(pt));
+    if (el && el.value.trim() !== '') {
+      const v = parseFloat(el.value);
+      if (!isNaN(v) && v > 0) pricing[pt] = v;
+    }
+  });
+  await savePricingData(pricing);
+  showToast('✓ Prices saved — live on main site!');
+}
+
+function switchPriceTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('ptab-'+tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ─── ORDERS ───
+let currentOrderFilter = 'all';
+async function renderOrders(filter) {
+  currentOrderFilter = filter;
+  const queries = _queriesCache.length ? _queriesCache : await getQueries();
+  renderOrdersFromCache(filter, queries);
+  updatePendingCount();
+}
+
+
+function orderDesignSrc(q) {
+  return q.designImageUrl || q.uploadedDesignImage || q.customerDesignImage || q.generatedDesignImage || q.customerUploadedDesignUrl || q.uploadedDesign || null;
+}
+function safeImgSrc(src) {
+  return escHtml(src || '');
+}
+
+function renderOrdersFromCache(filter, queries) {
+  queries = queries || _queriesCache;
+  currentOrderFilter = filter;
+  let list = queries;
+  if (filter === 'pending') list = queries.filter(q=>q.status==='pending');
+  else if (filter !== 'all') list = queries.filter(q=>q.type===filter);
+
+  if (!list.length) {
+    document.getElementById('orders-list').innerHTML = '<div class="empty-msg"><div class="em-icon">📭</div><p>No enquiries found.</p></div>';
+    return;
+  }
+
+  document.getElementById('orders-list').innerHTML = list.map(q => {
+    const collImg = q.collectionImage || null;
+    const design = orderDesignSrc(q);
+    return `
+    <div class="order-card type-${q.type&&q.type.includes('ai')?'ai':q.type&&q.type.includes('custom')?'custom':'collection'}" id="ocard-${q.id}">
+      <div class="order-header" onclick="toggleOrder('${q.id}')">
+        <span class="order-ref">${q.id}</span>
+        <div>
+          <span class="order-name">${escHtml(q.name||'—')}</span>
+          <span class="order-phone" style="margin-left:10px;">${escHtml(q.phone||'')}</span>
+        </div>
+        <span class="order-type-badge ${typeBadgeClass(q.type)}">${friendlyType(q.type)}</span>
+        ${q.proposedPrice ? `<span class="propose-tag">Proposed: ₹${q.proposedPrice}/m</span>` : ''}
+        ${q.finalPrice ? `<span class="final-price-tag">✔ Final: ₹${q.finalPrice}/m</span>` : ''}
+        <span class="order-time">${timeSince(q.timestamp)}</span>
+        <span style="font-size:0.8rem;color:var(--grey);">▾</span>
+      </div>
+      <div class="order-body" id="obody-${q.id}">
+        <div class="order-detail-grid">
+          <div class="od-item"><label>Fabric</label><span>${q.fabricType||q.fabric||'—'}</span></div>
+          <div class="od-item"><label>Print Type</label><span>${q.printType||q.print||'—'}</span></div>
+          <div class="od-item"><label>Quantity</label><span>${q.qty ? q.qty+' meters' : '—'}</span></div>
+          <div class="od-item"><label>Rate / Meter</label><span>${q.ratePerMeter ? '₹'+q.ratePerMeter : 'On enquiry'}</span></div>
+          <div class="od-item"><label>Total Estimate</label><span>${q.totalEstimate ? '₹'+q.totalEstimate.toLocaleString('en-IN') : '—'}</span></div>
+          <div class="od-item"><label>Proposed Price</label><span>${q.proposedPrice ? '₹'+q.proposedPrice+'/m' : '—'}</span></div>
+          ${q.finalPrice ? `<div class="od-item"><label>✔ Final Confirmed Price</label><span style="color:#1a6e35;font-weight:700;">₹${q.finalPrice}/m &nbsp;(Total: ₹${(q.finalPrice * (q.qty||0)).toLocaleString('en-IN')})</span></div>` : ''}
+          ${q.collectionName ? `<div class="od-item"><label>Collection Item</label><span>${escHtml(q.collectionName)}</span></div>` : ''}
+          ${q.designName ? `<div class="od-item"><label>Design Name</label><span>${escHtml(q.designName)}</span></div>` : ''}
+          ${q.email ? `<div class="od-item"><label>Email</label><span>${escHtml(q.email)}</span></div>` : ''}
+          ${(q.description || q.desc) ? `<div class="od-item" style="grid-column:1/-1;"><label>Description</label><span>${escHtml(q.description || q.desc)}</span></div>` : ''}
+        </div>
+        ${collImg || design ? `
+        <div style="margin-bottom:14px;">
+          <div style="font-size:0.63rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--grey);margin-bottom:8px;">Design Reference</div>
+          <div class="order-img-wrap">
+            ${collImg ? `<div><div style="font-size:0.68rem;color:var(--grey);margin-bottom:4px;">Collection image</div><img class="order-design-img" src="${safeImgSrc(collImg)}" alt="collection design"/></div>` : ''}
+            ${design ? `<div><div style="font-size:0.68rem;color:var(--grey);margin-bottom:4px;">Customer uploaded image</div><img class="order-design-img" src="${safeImgSrc(design)}" alt="customer uploaded design"/></div>` : ''}
+          </div>
+        </div>` : ''}
+        <div class="final-price-row" id="fpr-${q.id}">
+          <label>Final Confirmed Price</label>
+          <div class="final-price-input-wrap">
+            <span class="final-price-sym">₹</span>
+            <input class="final-price-input" type="number" min="0" step="0.5"
+              id="fp-${q.id}" value="${q.finalPrice||''}" placeholder="e.g. 19">
+          </div>
+          <span style="font-size:0.72rem;color:#1a6e35;">/meter</span>
+          <button class="final-price-save" onclick="saveFinalPrice('${q.id}')">SAVE</button>
+          ${q.finalPrice ? `<span style="font-size:0.72rem;color:#1a6e35;">✔ Saved — Total: ₹${(q.finalPrice*(q.qty||0)).toLocaleString('en-IN')}</span>` : ''}
+        </div>
+        <div class="order-status-row">
+          <span style="font-size:0.72rem;color:var(--grey);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Status:</span>
+          <select class="status-select" onchange="updateOrderStatus('${q.id}',this.value)">
+            <option value="pending" ${q.status==='pending'?'selected':''}>⏳ Pending</option>
+            <option value="contacted" ${q.status==='contacted'?'selected':''}>📞 Contacted</option>
+            <option value="confirmed" ${q.status==='confirmed'?'selected':''}>✅ Confirmed</option>
+            <option value="completed" ${q.status==='completed'?'selected':''}>🎉 Completed</option>
+            <option value="cancelled" ${q.status==='cancelled'?'selected':''}>❌ Cancelled</option>
+          </select>
+          <button class="btn btn-danger btn-sm" onclick="deleteOrder('${q.id}')">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleOrder(id) {
+  const b = document.getElementById('obody-'+id);
+  b.classList.toggle('open');
+}
+
+function filterOrders(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOrders(type);
+}
+
+async function updateOrderStatus(id, status) {
+  try {
+    const { db, doc, updateDoc } = window._fb;
+    await updateDoc(doc(db, 'enquiries', id), { status, updatedAt: new Date().toISOString() });
+    updatePendingCount();
+    showToast('Status updated to: '+status);
+  } catch(e) { showToast('Update failed', 'error'); }
+}
+
+async function saveFinalPrice(id) {
+  const val = parseFloat(document.getElementById('fp-'+id).value);
+  if (!val || val <= 0) { showToast('Please enter a valid price', 'error'); return; }
+  try {
+    const { db, doc, updateDoc } = window._fb;
+    const q = _queriesCache.find(x=>x.id===id);
+    const updates = { finalPrice: val, updatedAt: new Date().toISOString() };
+    if (q && q.status === 'pending') updates.status = 'confirmed';
+    await updateDoc(doc(db, 'enquiries', id), updates);
+    renderOrders(currentOrderFilter);
+    showToast('Final price ₹'+val+'/m saved!');
+  } catch(e) { showToast('Save failed', 'error'); }
+}
+
+async function deleteOrder(id) {
+  if (!confirm('Delete this enquiry?')) return;
+  try {
+    const { db, doc, deleteDoc } = window._fb;
+    await deleteDoc(doc(db, 'enquiries', id));
+    showToast('Enquiry deleted');
+  } catch(e) { showToast('Delete failed', 'error'); }
+}
+
+async function clearAllOrders() {
+  if (!confirm('Delete ALL enquiries? This cannot be undone.')) return;
+  try {
+    const { db, collection, getDocs, deleteDoc, doc } = window._fb;
+    const snap = await getDocs(collection(db, 'enquiries'));
+    await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'enquiries', d.id))));
+    renderOrders(currentOrderFilter);
+    showToast('All enquiries cleared');
+  } catch(e) { showToast('Clear failed', 'error'); }
+}
+
+// ─── UTILS ───
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function timeSince(ts) {
+  if (!ts) return '—';
+  const sec = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (sec < 60) return 'just now';
+  if (sec < 3600) return Math.floor(sec/60)+'m ago';
+  if (sec < 86400) return Math.floor(sec/3600)+'h ago';
+  return Math.floor(sec/86400)+'d ago';
+}
+
+function typeBadgeClass(type) {
+  if (!type) return 'badge-collection';
+  if (type.includes('ai')) return 'badge-ai';
+  if (type.includes('custom')) return 'badge-custom';
+  return 'badge-collection';
+}
+
+function friendlyType(type) {
+  if (!type) return 'Quote';
+  if (type==='collection-quote') return 'Collection';
+  if (type==='ai-design') return 'AI Design';
+  if (type==='custom-design') return 'Custom';
+  return type;
+}
+
+// fmStatusOn is managed as a simple variable above
+</script>
+</body>
+</html>
